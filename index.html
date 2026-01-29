@@ -60,16 +60,16 @@
                 <canvas id="mangaCanvas"></canvas>
                 <div class="nav-zone" style="right:0" onclick="nextPage()"></div>
             </div>
-            <div id="dot-nav" class="flex gap-2 mt-4"></div>
+            <div id="dot-nav" class="flex gap-2 mt-4 text-white text-[10px]"></div>
         </main>
     </div>
 
     <div id="admin-modal" class="fixed inset-0 bg-black/95 z-[300] hidden flex items-center justify-center p-8">
         <div class="w-full max-w-md space-y-6">
             <h2 class="text-white font-black text-2xl border-b-4 border-red-600 pb-2">GITHUB 資源同步器</h2>
-            <input type="text" id="admin-cat" placeholder="分類" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
-            <input type="text" id="admin-title" placeholder="章節名稱" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
-            <input type="text" id="admin-url" placeholder="GitHub 圖片路徑" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 text-xs">
+            <input type="text" id="admin-cat" placeholder="分類 (如：心魔)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
+            <input type="text" id="admin-title" placeholder="章節名稱 (換個名字測)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
+            <input type="text" id="admin-url" placeholder="GitHub 圖片路徑 (結尾帶 /)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 text-xs">
             <input type="number" id="admin-count" placeholder="總張數" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
             <button id="publish-btn" class="w-full bg-red-600 text-white py-4 font-black uppercase">確認同步雲端</button>
             <button onclick="triggerAdmin()" class="w-full text-zinc-600 text-xs">取消返回</button>
@@ -78,7 +78,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCLLatutsYz2pohWjmuKECuCJdAMiQI0aM",
@@ -92,29 +92,37 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        let library = {}, mangaPages = [], currentIndex = 0;
+        let mangaPages = [], currentIndex = 0;
         const canvas = document.getElementById('mangaCanvas');
         const ctx = canvas.getContext('2d');
 
-        // ✅ 強制路徑一元化：解決同步器拼寫錯誤 [cite: 2026-01-22, 2026-01-24]
+        // ✅ 改進發布邏輯：使用 set 覆蓋模式，防止產生大量隨機 ID 舊數據 [cite: 2026-01-22]
         document.getElementById('publish-btn').onclick = async () => {
             const cat = document.getElementById('admin-cat').value.trim();
             const title = document.getElementById('admin-title').value.trim();
             let baseUrl = document.getElementById('admin-url').value.trim();
             const count = parseInt(document.getElementById('admin-count').value);
-            if(!cat || !title || !baseUrl || !count) return alert("資料不全");
+            if(!cat || !title || !baseUrl || !count) return alert("全部必填！");
             
-            // 自動補斜線與修正 GitHub 路徑格式
             if(!baseUrl.endsWith('/')) baseUrl += '/';
+            // 生成網址清單
             const imageUrls = Array.from({length: count}, (_, i) => `${baseUrl}${(i+1).toString().padStart(2, '0')}.jpg`);
             
-            await set(push(ref(db, `resources/library/${cat}`)), { title, images: imageUrls, createdAt: Date.now() });
-            alert("同步成功！");
-            triggerAdmin();
+            try {
+                // 直接用 title 當路徑名，同名會直接覆蓋，避免舊版干擾 [cite: 2026-01-22]
+                await set(ref(db, `resources/library/${cat}/${title}`), { 
+                    title: title, 
+                    images: imageUrls, 
+                    createdAt: Date.now() 
+                });
+                alert("同步成功！");
+                triggerAdmin();
+            } catch(e) { alert("同步失敗：" + e.message); }
         };
 
+        // 讀取選單
         onValue(ref(db, 'resources/library'), (snap) => {
-            library = snap.val() || {};
+            const library = snap.val() || {};
             const container = document.getElementById('library-content');
             container.innerHTML = "";
             Object.keys(library).forEach(cat => {
@@ -131,27 +139,36 @@
             });
         });
 
+        // ✅ 強化載入邏輯：加入 Cache Buster 與 詳細 Console 報錯 [cite: 2026-01-22]
         async function loadManga(urls, cat, title) {
-            document.getElementById('current-path').innerText = `${cat} / ${title}`;
-            mangaPages = []; // 徹底清空快取
+            console.log("正在載入章節：", title, "圖片總數：", urls.length);
+            document.getElementById('current-path').innerText = `LOADING: ${title}...`;
             
-            const promises = urls.map(url => new Promise(res => { 
-                const img = new Image(); 
-                img.crossOrigin = "anonymous"; // ✅ 解決跨域問題 [cite: 2026-01-29]
-                img.onload = () => res(img); 
-                img.onerror = () => { console.error("Failed:", url); res(null); };
-                img.src = url; 
+            mangaPages = [];
+            currentIndex = 0;
+
+            const results = await Promise.all(urls.map((url, idx) => {
+                return new Promise(res => {
+                    const img = new Image();
+                    img.crossOrigin = "anonymous";
+                    img.onload = () => { console.log(`第 ${idx+1} 頁載入成功`); res(img); };
+                    img.onerror = () => { 
+                        console.error(`第 ${idx+1} 頁載入失敗！網址：`, url); 
+                        res(null); 
+                    };
+                    // 加上隨機參數防止 GitHub 快取 [cite: 2026-01-22]
+                    img.src = url + "?t=" + new Date().getTime();
+                });
             }));
-            
-            const results = await Promise.all(promises);
+
             mangaPages = results.filter(i => i !== null);
             
             if (mangaPages.length > 0) {
-                currentIndex = 0; 
-                render(); 
+                document.getElementById('current-path').innerText = `${cat} / ${title} [共 ${mangaPages.length} 頁]`;
+                render();
                 updateDots();
             } else {
-                alert("圖片載入失敗，請檢查 GitHub 路徑與檔案命名！");
+                alert("一張圖都抓不到！請按 F12 打開 Console 檢查報錯。");
             }
         }
 
@@ -159,38 +176,27 @@
             if (!mangaPages.length) return;
             const img = mangaPages[currentIndex];
             const viewport = document.getElementById('manga-viewport');
-            
             canvas.width = viewport.clientWidth;
             canvas.height = viewport.clientHeight;
             
             const imgRatio = img.width / img.height;
             const canvasRatio = canvas.width / canvas.height;
-            
             let drawW, drawH, offsetX, offsetY;
             
             if (imgRatio > canvasRatio) {
-                drawW = canvas.width;
-                drawH = canvas.width / imgRatio;
-                offsetX = 0;
-                offsetY = (canvas.height - drawH) / 2;
+                drawW = canvas.width; drawH = canvas.width / imgRatio;
+                offsetX = 0; offsetY = (canvas.height - drawH) / 2;
             } else {
-                drawH = canvas.height;
-                drawW = canvas.height * imgRatio;
-                offsetY = 0;
-                offsetX = (canvas.width - drawW) / 2;
+                drawH = canvas.height; drawW = canvas.height * imgRatio;
+                offsetY = 0; offsetX = (canvas.width - drawW) / 2;
             }
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // ✅ 強制清空舊畫面 [cite: 2026-01-29]
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
         }
 
         function updateDots() {
-            const nav = document.getElementById('dot-nav'); nav.innerHTML = "";
-            mangaPages.forEach((_, i) => {
-                const dot = document.createElement('div');
-                dot.className = `w-1.5 h-1.5 rounded-full border border-white ${i === currentIndex ? 'bg-white' : 'opacity-30'}`;
-                nav.appendChild(dot);
-            });
+            const nav = document.getElementById('dot-nav');
+            nav.innerText = `PAGE: ${currentIndex + 1} / ${mangaPages.length}`;
         }
 
         window.nextPage = () => { if (currentIndex < mangaPages.length - 1) { currentIndex++; render(); updateDots(); } };
