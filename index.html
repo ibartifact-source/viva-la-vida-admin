@@ -10,7 +10,7 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #000; overflow: hidden; margin: 0; touch-action: manipulation; }
 
-        /* --- 核心首頁佈局 (恢復完整版) --- */
+        /* --- 核心首頁佈局 --- */
         #landing-page {
             position: fixed; inset: 0; z-index: 200; background: #ffffff;
             display: flex; flex-direction: column; align-items: center;
@@ -28,7 +28,6 @@
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
             width: 100%; height: 50vh; pointer-events: none; 
         }
-        /* 嚴格照抄 z-index 與層級 [cite: 2026-01-18] */
         .char-part { 
             position: absolute; height: 100%; background-size: cover; background-position: center; 
             transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1); border: 6px solid black; bottom: 0; pointer-events: auto;
@@ -39,14 +38,13 @@
         .minion-r-part { width: 40%; right: 5%; z-index: 20; clip-path: polygon(0% 15%, 100% 0%, 100% 100%, 15% 100%); transform: translateX(120%) rotate(10deg); }
         .loaded .char-part { transform: translate(0,0) rotate(0); }
 
-        /* --- 主程式佈局 (防止跑版關鍵) --- */
+        /* --- 主程式佈局 (修正跑版關鍵) --- */
         #main-app { opacity: 0; visibility: hidden; transition: 0.5s; height: 100vh; display: flex; flex-direction: column; background: #050505; }
         #manga-viewport {
             position: relative; width: 95vw; max-width: 500px; height: calc(100vh - 250px);
             margin: 10px auto; background: #111; border: 3px solid #fff; z-index: 10; 
             overflow: hidden; display: flex; align-items: center; justify-content: center;
         }
-        /* 修正跑版：限制最大尺寸並保持比例 */
         canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
         
         .nav-zone { position: absolute; top: 0; height: 100%; width: 25%; z-index: 20; opacity: 0; cursor: pointer; }
@@ -69,7 +67,7 @@
             <button onclick="document.getElementById('bg-upload').click()" class="bg-blue-600 text-white font-black py-4 px-10 rounded-full border-4 border-white">上傳心魔底圖 📸</button>
             <button onclick="startApp()" class="bg-black text-white font-black py-4 px-10 rounded-full border-4 border-white">進入裁決系統 ⚡</button>
         </div>
-        <input type="file" id="bg-upload" accept="image/*" class="hidden" style="display:none">
+        <input type="file" id="bg-upload" accept="image/*" class="hidden">
     </div>
 
     <div id="main-app">
@@ -103,7 +101,7 @@
             <h2 class="text-white font-black text-2xl border-b-4 border-red-600 pb-2">GITHUB 資源同步器</h2>
             <input type="text" id="admin-cat" placeholder="分類 (如：第一章)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
             <input type="text" id="admin-title" placeholder="章節名稱" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
-            <input type="text" id="admin-url" placeholder="GitHub 圖片網址 (結尾帶 /)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 text-xs">
+            <input type="text" id="admin-url" placeholder="GitHub 圖片路徑 (結尾帶 /)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 text-xs">
             <input type="number" id="admin-count" placeholder="總張數" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
             <button id="publish-btn" class="w-full bg-red-600 text-white py-4 font-black uppercase">確認同步雲端</button>
             <button onclick="triggerAdmin()" class="w-full text-zinc-600 text-xs">取消返回</button>
@@ -126,12 +124,11 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        let library = {};
-        let mangaPages = [];
-        let currentIndex = 0;
+        let library = {}, mangaPages = [], currentIndex = 0;
         const parts = ['part-l', 'part-m', 'part-r'];
+        const canvas = document.getElementById('mangaCanvas');
+        const ctx = canvas.getContext('2d');
 
-        // --- 修正：更換底圖邏輯 ---
         document.getElementById('bg-upload').onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -144,17 +141,17 @@
             }
         };
 
-        // 發布與讀取邏輯 (GitHub 方案)
         document.getElementById('publish-btn').onclick = async () => {
-            const cat = document.getElementById('admin-cat').value;
-            const title = document.getElementById('admin-title').value;
-            const baseUrl = document.getElementById('admin-url').value;
+            const cat = document.getElementById('admin-cat').value.trim();
+            const title = document.getElementById('admin-title').value.trim();
+            const baseUrl = document.getElementById('admin-url').value.trim();
             const count = parseInt(document.getElementById('admin-count').value);
             if(!cat || !title || !baseUrl || !count) return alert("資料不全");
 
             const imageUrls = Array.from({length: count}, (_, i) => `${baseUrl}${(i+1).toString().padStart(2, '0')}.jpg`);
             await set(push(ref(db, `resources/library/${cat}`)), { title, images: imageUrls, createdAt: Date.now() });
-            location.reload();
+            alert("同步成功！");
+            triggerAdmin();
         };
 
         onValue(ref(db, 'resources/library'), (snap) => {
@@ -168,7 +165,7 @@
                     const item = document.createElement('div');
                     item.className = "text-white font-bold py-2 px-4 bg-zinc-900 rounded cursor-pointer mb-2 text-sm";
                     item.innerText = library[cat][id].title;
-                    item.onclick = () => { loadManga(library[cat][id].images); toggleDrawer(); };
+                    item.onclick = () => { loadManga(library[cat][id].images, cat, library[cat][id].title); toggleDrawer(); };
                     group.appendChild(item);
                 });
                 container.appendChild(group);
@@ -176,18 +173,37 @@
             document.getElementById('current-path').innerText = "GITHUB CLOUD SYNCED";
         });
 
-        async function loadManga(urls) {
-            const promises = urls.map(url => new Promise(res => { const img = new Image(); img.onload = () => res(img); img.src = url; }));
-            mangaPages = await Promise.all(promises);
-            currentIndex = 0; render(); updateDots();
+        async function loadManga(urls, cat, title) {
+            document.getElementById('current-path').innerText = `${cat} / ${title}`;
+            const promises = urls.map(url => new Promise(res => { 
+                const img = new Image(); 
+                img.crossOrigin = "anonymous"; // ✅ 修正：解決 GitHub 圖片跨域問題
+                img.onload = () => res(img); 
+                img.onerror = () => res(null);
+                img.src = url; 
+            }));
+            const results = await Promise.all(promises);
+            mangaPages = results.filter(i => i !== null);
+            currentIndex = 0; 
+            render(); 
+            updateDots();
         }
 
         function render() {
-            const canvas = document.getElementById('mangaCanvas');
-            const ctx = canvas.getContext('2d');
+            if (!mangaPages.length) return;
             const img = mangaPages[currentIndex];
-            canvas.width = img.width; canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
+            const viewport = document.getElementById('manga-viewport');
+            const vW = viewport.clientWidth, vH = viewport.clientHeight;
+            const imgRatio = img.width / img.height, viewRatio = vW / vH;
+
+            // ✅ 修正：自動縮放 Canvas 比例，防止跑版
+            if (imgRatio > viewRatio) {
+                canvas.width = vW; canvas.height = vW / imgRatio;
+            } else {
+                canvas.height = vH; canvas.width = vH * imgRatio;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         }
 
         function updateDots() {
