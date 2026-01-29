@@ -3,50 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>私人裁決 - 穩定省錢版(修復功能)</title>
+    <title>私人裁決 - 邏輯覺醒修正版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #000; overflow: hidden; margin: 0; touch-action: manipulation; }
-
-        /* --- 核心首頁佈局 --- */
-        #landing-page {
-            position: fixed; inset: 0; z-index: 200; background: #ffffff;
-            display: flex; flex-direction: column; align-items: center;
-            justify-content: space-between; padding: 6vh 0;
-            transition: transform 0.8s cubic-bezier(0.87, 0, 0.13, 1);
-        }
-        .main-title-box { 
-            background-color: #e63946; padding: 0.8rem 2rem; border: 6px solid #000; 
-            box-shadow: 8px 8px 0px #000; transform: rotate(-2deg) scale(0.6); 
-            opacity: 0; transition: all 0.6s 1s; 
-        }
+        #landing-page { position: fixed; inset: 0; z-index: 200; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 6vh 0; transition: transform 0.8s cubic-bezier(0.87, 0, 0.13, 1); }
+        .main-title-box { background-color: #e63946; padding: 0.8rem 2rem; border: 6px solid #000; box-shadow: 8px 8px 0px #000; transform: rotate(-2deg) scale(0.6); opacity: 0; transition: all 0.6s 1s; }
         .loaded .main-title-box { opacity: 1; transform: rotate(-2deg) scale(1); }
-
-        .character-stage { 
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-            width: 100%; height: 50vh; pointer-events: none; 
-        }
-        .char-part { 
-            position: absolute; height: 100%; background-size: cover; background-position: center; 
-            transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1); border: 6px solid black; bottom: 0; pointer-events: auto;
-            background-color: #222;
-        }
+        .character-stage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 50vh; pointer-events: none; }
+        .char-part { position: absolute; height: 100%; background-size: cover; background-position: center; transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1); border: 6px solid black; bottom: 0; pointer-events: auto; background-color: #222; }
         .boss-part { width: 45%; left: 27.5%; z-index: 30; clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%); transform: translateY(110%); }
         .minion-l-part { width: 40%; left: 5%; z-index: 20; clip-path: polygon(0% 0%, 100% 15%, 85% 100%, 0% 100%); transform: translateX(-120%) rotate(-10deg); }
         .minion-r-part { width: 40%; right: 5%; z-index: 20; clip-path: polygon(0% 15%, 100% 0%, 100% 100%, 15% 100%); transform: translateX(120%) rotate(10deg); }
         .loaded .char-part { transform: translate(0,0) rotate(0); }
-
-        /* --- 主程式佈局 (修正跑版關鍵) --- */
         #main-app { opacity: 0; visibility: hidden; transition: 0.5s; height: 100vh; display: flex; flex-direction: column; background: #050505; }
-        #manga-viewport {
-            position: relative; width: 95vw; max-width: 500px; height: calc(100vh - 250px);
-            margin: 10px auto; background: #111; border: 3px solid #fff; z-index: 10; 
-            overflow: hidden; display: flex; align-items: center; justify-content: center;
-        }
+        #manga-viewport { position: relative; width: 95vw; max-width: 500px; height: calc(100vh - 250px); margin: 10px auto; background: #111; border: 3px solid #fff; z-index: 10; overflow: hidden; display: flex; align-items: center; justify-content: center; }
         canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
-        
         .nav-zone { position: absolute; top: 0; height: 100%; width: 25%; z-index: 20; opacity: 0; cursor: pointer; }
         #side-drawer { position: fixed; top: 0; left: -300px; width: 280px; height: 100%; background: #000; border-right: 2px solid #fff; z-index: 250; transition: 0.4s; padding: 2rem; }
         #side-drawer.open { left: 0; }
@@ -55,7 +29,6 @@
     </style>
 </head>
 <body>
-
     <div id="landing-page">
         <div class="main-title-box"><h1 class="text-4xl font-black italic text-white">私人裁決</h1></div>
         <div class="character-stage">
@@ -76,16 +49,11 @@
             <h2 class="text-xl font-black italic text-white mb-10 underline decoration-red-600">庫存檔案庫</h2>
             <div id="library-content" class="space-y-4"></div>
         </div>
-
         <header class="p-4 flex justify-between items-center border-b-4 border-white">
             <button onclick="toggleDrawer()"><i data-lucide="menu" class="text-white"></i></button>
-            <div class="text-right">
-                <h1 class="text-white font-black italic">PRIVATE JUDGMENT</h1>
-                <div id="current-path" class="text-[9px] text-zinc-500 uppercase">SYNCING...</div>
-            </div>
+            <div class="text-right"><h1 class="text-white font-black italic">PRIVATE JUDGMENT</h1><div id="current-path" class="text-[9px] text-zinc-500 uppercase">SYNCING...</div></div>
             <button onclick="triggerAdmin()" class="bg-white text-black px-4 py-1 text-xs font-bold">發布</button>
         </header>
-
         <main class="flex-grow flex flex-col items-center justify-center">
             <div id="manga-viewport">
                 <div class="nav-zone" style="left:0" onclick="prevPage()"></div>
@@ -99,9 +67,9 @@
     <div id="admin-modal" class="fixed inset-0 bg-black/95 z-[300] hidden flex items-center justify-center p-8">
         <div class="w-full max-w-md space-y-6">
             <h2 class="text-white font-black text-2xl border-b-4 border-red-600 pb-2">GITHUB 資源同步器</h2>
-            <input type="text" id="admin-cat" placeholder="分類 (如：第一章)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
+            <input type="text" id="admin-cat" placeholder="分類" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
             <input type="text" id="admin-title" placeholder="章節名稱" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
-            <input type="text" id="admin-url" placeholder="GitHub 圖片路徑 (結尾帶 /)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 text-xs">
+            <input type="text" id="admin-url" placeholder="GitHub 圖片路徑" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 text-xs">
             <input type="number" id="admin-count" placeholder="總張數" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
             <button id="publish-btn" class="w-full bg-red-600 text-white py-4 font-black uppercase">確認同步雲端</button>
             <button onclick="triggerAdmin()" class="w-full text-zinc-600 text-xs">取消返回</button>
@@ -125,29 +93,18 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         let library = {}, mangaPages = [], currentIndex = 0;
-        const parts = ['part-l', 'part-m', 'part-r'];
         const canvas = document.getElementById('mangaCanvas');
         const ctx = canvas.getContext('2d');
 
-        document.getElementById('bg-upload').onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const r = new FileReader();
-                r.onload = (ev) => {
-                    parts.forEach(id => document.getElementById(id).style.backgroundImage = `url('${ev.target.result}')`);
-                    localStorage.setItem('user_hero_bg', ev.target.result);
-                };
-                r.readAsDataURL(file);
-            }
-        };
-
+        // ✅ 修正：發布邏輯自動補斜線 [cite: 2026-01-24]
         document.getElementById('publish-btn').onclick = async () => {
             const cat = document.getElementById('admin-cat').value.trim();
             const title = document.getElementById('admin-title').value.trim();
-            const baseUrl = document.getElementById('admin-url').value.trim();
+            let baseUrl = document.getElementById('admin-url').value.trim();
             const count = parseInt(document.getElementById('admin-count').value);
             if(!cat || !title || !baseUrl || !count) return alert("資料不全");
-
+            
+            if(!baseUrl.endsWith('/')) baseUrl += '/'; // ✅ 強制自動補斜線，防止 404 [cite: 2026-01-29]
             const imageUrls = Array.from({length: count}, (_, i) => `${baseUrl}${(i+1).toString().padStart(2, '0')}.jpg`);
             await set(push(ref(db, `resources/library/${cat}`)), { title, images: imageUrls, createdAt: Date.now() });
             alert("同步成功！");
@@ -170,14 +127,14 @@
                 });
                 container.appendChild(group);
             });
-            document.getElementById('current-path').innerText = "GITHUB CLOUD SYNCED";
         });
 
         async function loadManga(urls, cat, title) {
             document.getElementById('current-path').innerText = `${cat} / ${title}`;
+            mangaPages = []; // ✅ 載入前清空舊數據
             const promises = urls.map(url => new Promise(res => { 
                 const img = new Image(); 
-                img.crossOrigin = "anonymous"; // ✅ 修正：解決 GitHub 圖片跨域問題
+                img.crossOrigin = "anonymous"; // ✅ 修正：跨域 [cite: 2026-01-29]
                 img.onload = () => res(img); 
                 img.onerror = () => res(null);
                 img.src = url; 
@@ -196,13 +153,13 @@
             const vW = viewport.clientWidth, vH = viewport.clientHeight;
             const imgRatio = img.width / img.height, viewRatio = vW / vH;
 
-            // ✅ 修正：自動縮放 Canvas 比例，防止跑版
+            // ✅ 修正：等比縮放邏輯 [cite: 2026-01-29]
             if (imgRatio > viewRatio) {
                 canvas.width = vW; canvas.height = vW / imgRatio;
             } else {
                 canvas.height = vH; canvas.width = vH * imgRatio;
             }
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // ✅ 強制清空畫布 [cite: 2026-01-29]
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         }
 
@@ -223,7 +180,7 @@
         
         window.onload = () => {
             const savedBg = localStorage.getItem('user_hero_bg') || '';
-            if (savedBg) parts.forEach(id => document.getElementById(id).style.backgroundImage = `url('${savedBg}')`);
+            if (savedBg) ['part-l', 'part-m', 'part-r'].forEach(id => document.getElementById(id).style.backgroundImage = `url('${savedBg}')`);
             setTimeout(() => { document.getElementById('landing-page').classList.add('loaded'); document.getElementById('enter-btn-area').style.opacity = '1'; }, 100);
             lucide.createIcons();
         };
