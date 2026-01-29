@@ -12,33 +12,31 @@
         #landing-page { position: fixed; inset: 0; z-index: 200; background: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 6vh 0; transition: transform 0.8s cubic-bezier(0.87, 0, 0.13, 1); }
         .main-title-box { background-color: #e63946; padding: 0.8rem 2rem; border: 6px solid #000; box-shadow: 8px 8px 0px #000; transform: rotate(-2deg) scale(0.6); opacity: 0; transition: all 0.6s 1s; }
         .loaded .main-title-box { opacity: 1; transform: rotate(-2deg) scale(1); }
-        .character-stage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 50vh; pointer-events: none; }
+        #main-app { opacity: 0; visibility: hidden; transition: 0.5s; height: 100vh; display: flex; flex-direction: column; background: #050505; }
+        #manga-viewport { position: relative; width: 95vw; max-width: 500px; height: calc(100vh - 250px); margin: 10px auto; background: #111; border: 3px solid #fff; z-index: 10; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
+        #side-drawer { position: fixed; top: 0; left: -300px; width: 280px; height: 100%; background: #000; border-right: 2px solid #fff; z-index: 250; transition: 0.4s; padding: 2rem; overflow-y: auto; }
+        #side-drawer.open { left: 0; }
+        .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 240; display: none; }
+        .drawer-overlay.open { display: block; }
         .char-part { position: absolute; height: 100%; background-size: cover; background-position: center; transition: all 1.2s cubic-bezier(0.19, 1, 0.22, 1); border: 6px solid black; bottom: 0; pointer-events: auto; background-color: #222; }
         .boss-part { width: 45%; left: 27.5%; z-index: 30; clip-path: polygon(15% 0%, 85% 0%, 100% 100%, 0% 100%); transform: translateY(110%); }
         .minion-l-part { width: 40%; left: 5%; z-index: 20; clip-path: polygon(0% 0%, 100% 15%, 85% 100%, 0% 100%); transform: translateX(-120%) rotate(-10deg); }
         .minion-r-part { width: 40%; right: 5%; z-index: 20; clip-path: polygon(0% 15%, 100% 0%, 100% 100%, 15% 100%); transform: translateX(120%) rotate(10deg); }
         .loaded .char-part { transform: translate(0,0) rotate(0); }
-        #main-app { opacity: 0; visibility: hidden; transition: 0.5s; height: 100vh; display: flex; flex-direction: column; background: #050505; }
-        #manga-viewport { position: relative; width: 95vw; max-width: 500px; height: calc(100vh - 250px); margin: 10px auto; background: #111; border: 3px solid #fff; z-index: 10; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .nav-zone { position: absolute; top: 0; height: 100%; width: 25%; z-index: 20; opacity: 0; cursor: pointer; }
-        #side-drawer { position: fixed; top: 0; left: -300px; width: 280px; height: 100%; background: #000; border-right: 2px solid #fff; z-index: 250; transition: 0.4s; padding: 2rem; overflow-y: auto; }
-        #side-drawer.open { left: 0; }
-        .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 240; display: none; }
-        .drawer-overlay.open { display: block; }
     </style>
 </head>
 <body>
     <div id="landing-page">
         <div class="main-title-box"><h1 class="text-4xl font-black italic text-white">私人裁決</h1></div>
-        <div class="character-stage">
+        <div class="character-stage" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 50vh; pointer-events: none;">
             <div id="part-l" class="char-part minion-l-part"></div>
             <div id="part-r" class="char-part minion-r-part"></div>
             <div id="part-m" class="char-part boss-part"></div>
         </div>
         <div class="flex flex-col gap-4 relative z-[130] opacity-0 transition-opacity duration-500 delay-[2s]" id="enter-btn-area">
-            <button onclick="document.getElementById('bg-upload').click()" class="bg-blue-600 text-white font-black py-4 px-10 rounded-full border-4 border-white shadow-[0_0_20px_rgba(37,99,235,0.5)]">上傳心魔底圖 📸</button>
-            <button onclick="startApp()" class="bg-black text-white font-black py-4 px-10 rounded-full border-4 border-white hover:bg-white hover:text-black transition">進入裁決系統 ⚡</button>
+            <button onclick="document.getElementById('bg-upload').click()" class="bg-blue-600 text-white font-black py-4 px-10 rounded-full border-4 border-white shadow-lg">上傳心魔底圖 📸</button>
+            <button onclick="startApp()" class="bg-black text-white font-black py-4 px-10 rounded-full border-4 border-white">進入裁決系統 ⚡</button>
         </div>
         <input type="file" id="bg-upload" accept="image/*" class="hidden">
     </div>
@@ -46,19 +44,31 @@
     <div id="main-app">
         <div id="drawer-overlay" class="drawer-overlay" onclick="toggleDrawer()"></div>
         <div id="side-drawer">
-            <h2 class="text-xl font-black italic text-white mb-10 underline decoration-red-600">庫存檔案庫</h2>
+            <h2 class="text-xl font-black italic text-white mb-6 underline decoration-red-600">庫存檔案庫</h2>
             <div id="library-content" class="space-y-6"></div>
+            <div id="admin-auth-section" class="mt-10 pt-6 border-t border-zinc-800">
+                <p class="text-[10px] text-zinc-500 mb-2">管理員權限</p>
+                <div id="login-form">
+                    <input type="email" id="auth-email" placeholder="Email" class="w-full p-2 text-xs bg-zinc-900 text-white mb-2 border border-zinc-700">
+                    <input type="password" id="auth-pass" placeholder="Password" class="w-full p-2 text-xs bg-zinc-900 text-white mb-2 border border-zinc-700">
+                    <button onclick="login()" class="w-full bg-white text-black text-[10px] font-bold py-2">登入系統</button>
+                </div>
+                <div id="admin-info" class="hidden">
+                    <p id="user-display" class="text-xs text-green-500 font-bold mb-2"></p>
+                    <button onclick="logout()" class="w-full bg-red-600 text-white text-[10px] font-bold py-2">登出</button>
+                </div>
+            </div>
         </div>
         <header class="p-4 flex justify-between items-center border-b-4 border-white">
             <button onclick="toggleDrawer()"><i data-lucide="menu" class="text-white"></i></button>
             <div class="text-right"><h1 class="text-white font-black italic">PRIVATE JUDGMENT</h1><div id="current-path" class="text-[9px] text-zinc-500 uppercase">SYNCING...</div></div>
-            <button onclick="triggerAdmin()" class="bg-white text-black px-4 py-1 text-xs font-bold border-2 border-black active:scale-95 transition">發布/管理</button>
+            <button id="admin-trigger-btn" onclick="triggerAdmin()" class="hidden bg-white text-black px-4 py-1 text-xs font-bold border-2 border-black">發布</button>
         </header>
         <main class="flex-grow flex flex-col items-center justify-center">
             <div id="manga-viewport">
-                <div class="nav-zone" style="left:0" onclick="prevPage()"></div>
+                <div class="nav-zone" style="position:absolute; top:0; left:0; height:100%; width:25%; z-index:20; cursor:pointer;" onclick="prevPage()"></div>
                 <canvas id="mangaCanvas"></canvas>
-                <div class="nav-zone" style="right:0" onclick="nextPage()"></div>
+                <div class="nav-zone" style="position:absolute; top:0; right:0; height:100%; width:25%; z-index:20; cursor:pointer;" onclick="nextPage()"></div>
             </div>
             <div id="dot-nav" class="flex gap-2 mt-4 text-white text-[10px] font-mono"></div>
         </main>
@@ -68,19 +78,20 @@
         <div class="w-full max-w-md space-y-6">
             <h2 class="text-white font-black text-2xl border-b-4 border-red-600 pb-2">GITHUB 資源同步器</h2>
             <div class="space-y-4">
-                <input type="text" id="admin-cat" placeholder="分類 (如：心魔)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 focus:border-blue-500 outline-none">
-                <input type="text" id="admin-title" placeholder="章節名稱 (同名將覆蓋)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 focus:border-blue-500 outline-none">
-                <input type="text" id="admin-url" placeholder="GitHub 圖片目錄 URL (結尾帶 /)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 text-xs focus:border-blue-500 outline-none">
-                <input type="number" id="admin-count" placeholder="總張數 (如：10)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 focus:border-blue-500 outline-none">
+                <input type="text" id="admin-cat" placeholder="分類 (如：心魔)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 outline-none">
+                <input type="text" id="admin-title" placeholder="章節名稱 (同名將覆蓋)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 outline-none">
+                <input type="text" id="admin-url" placeholder="GitHub 目錄路徑 (結尾帶 /)" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700 text-xs">
+                <input type="number" id="admin-count" placeholder="總張數" class="w-full p-3 bg-zinc-900 text-white border border-zinc-700">
             </div>
-            <button id="publish-btn" class="w-full bg-red-600 text-white py-4 font-black uppercase hover:bg-red-700 transition active:scale-95">確認同步雲端</button>
-            <button onclick="triggerAdmin()" class="w-full text-zinc-600 text-xs hover:text-white transition">取消返回</button>
+            <button id="publish-btn" class="w-full bg-red-600 text-white py-4 font-black uppercase">確認同步雲端</button>
+            <button onclick="triggerAdmin()" class="w-full text-zinc-600 text-xs">取消返回</button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCLLatutsYz2pohWjmuKECuCJdAMiQI0aM",
@@ -94,12 +105,40 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        let mangaPages = [], currentIndex = 0;
+        const auth = getAuth(app);
+        
+        let mangaPages = [], currentIndex = 0, isAdmin = false;
         const canvas = document.getElementById('mangaCanvas');
         const ctx = canvas.getContext('2d');
 
-        // ✅ 發布與覆蓋邏輯 [cite: 2026-01-22]
+        // ✅ Auth 狀態監控 [cite: 2026-01-24]
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                isAdmin = true;
+                document.getElementById('login-form').classList.add('hidden');
+                document.getElementById('admin-info').classList.remove('hidden');
+                document.getElementById('user-display').innerText = `管理員: ${user.email}`;
+                document.getElementById('admin-trigger-btn').classList.remove('hidden');
+            } else {
+                isAdmin = false;
+                document.getElementById('login-form').classList.remove('hidden');
+                document.getElementById('admin-info').classList.add('hidden');
+                document.getElementById('admin-trigger-btn').classList.add('hidden');
+            }
+            refreshLibrary(); // 狀態改變時重整清單以顯示/隱藏刪除按鈕
+        });
+
+        // 登入/登出函數
+        window.login = () => {
+            const email = document.getElementById('auth-email').value;
+            const pass = document.getElementById('auth-pass').value;
+            signInWithEmailAndPassword(auth, email, pass).catch(e => alert("登入失敗: " + e.message));
+        };
+        window.logout = () => signOut(auth);
+
+        // ✅ 發布邏輯 (限管理員) [cite: 2026-01-22]
         document.getElementById('publish-btn').onclick = async () => {
+            if (!isAdmin) return alert("權限不足");
             const cat = document.getElementById('admin-cat').value.trim();
             const title = document.getElementById('admin-title').value.trim();
             let baseUrl = document.getElementById('admin-url').value.trim();
@@ -107,87 +146,69 @@
             
             if(!cat || !title || !baseUrl || !count) return alert("全部必填！");
             if(!baseUrl.endsWith('/')) baseUrl += '/';
-            
             const imageUrls = Array.from({length: count}, (_, i) => `${baseUrl}${(i+1).toString().padStart(2, '0')}.jpg`);
             
             try {
-                // 使用 title 直接作為 Key，實現 ID 對應多語系/欄位的覆蓋模式 [cite: 2026-01-22]
-                await set(ref(db, `resources/library/${cat}/${title}`), { 
-                    title: title, 
-                    images: imageUrls, 
-                    createdAt: Date.now() 
-                });
+                await set(ref(db, `resources/library/${cat}/${title}`), { title, images: imageUrls, createdAt: Date.now() });
                 alert("同步成功！");
                 triggerAdmin();
             } catch(e) { alert("同步失敗：" + e.message); }
         };
 
-        // ✅ 刪除邏輯：尊重資源一元化路徑 [cite: 2026-01-22]
-        window.deleteEntry = async (cat, title) => {
-            if(!confirm(`確定要刪除「${title}」嗎？此操作不可逆。`)) return;
-            try {
-                await remove(ref(db, `resources/library/${cat}/${title}`));
-                console.log(`已從雲端移除: ${cat}/${title}`);
-            } catch(e) { alert("刪除失敗：" + e.message); }
-        };
+        // 讀取清單 [cite: 2026-01-22]
+        function refreshLibrary() {
+            onValue(ref(db, 'resources/library'), (snap) => {
+                const library = snap.val() || {};
+                const container = document.getElementById('library-content');
+                container.innerHTML = "";
+                Object.keys(library).forEach(cat => {
+                    const group = document.createElement('div');
+                    group.innerHTML = `<h3 class='text-zinc-600 text-[10px] font-black uppercase mb-3 border-l-2 border-red-600 pl-2'>${cat}</h3>`;
+                    Object.keys(library[cat]).forEach(id => {
+                        const itemWrapper = document.createElement('div');
+                        itemWrapper.className = "flex items-center gap-2 mb-2";
+                        
+                        const item = document.createElement('div');
+                        item.className = "flex-grow text-white font-bold py-2 px-4 bg-zinc-900 rounded cursor-pointer text-sm truncate";
+                        item.innerText = library[cat][id].title;
+                        item.onclick = () => { loadManga(library[cat][id].images, cat, library[cat][id].title); toggleDrawer(); };
 
-        // 讀取與渲染清單 (含刪除按鈕)
-        onValue(ref(db, 'resources/library'), (snap) => {
-            const library = snap.val() || {};
-            const container = document.getElementById('library-content');
-            container.innerHTML = "";
-            
-            Object.keys(library).forEach(cat => {
-                const group = document.createElement('div');
-                group.innerHTML = `<h3 class='text-zinc-600 text-[10px] font-black uppercase mb-3 border-l-2 border-red-600 pl-2'>${cat}</h3>`;
-                
-                Object.keys(library[cat]).forEach(id => {
-                    const data = library[cat][id];
-                    const itemWrapper = document.createElement('div');
-                    itemWrapper.className = "flex items-center gap-2 mb-2 group";
-
-                    const item = document.createElement('div');
-                    item.className = "flex-grow text-white font-bold py-2 px-4 bg-zinc-900 rounded cursor-pointer text-sm hover:bg-zinc-800 transition truncate";
-                    item.innerText = data.title;
-                    item.onclick = () => { loadManga(data.images, cat, data.title); toggleDrawer(); };
-
-                    const delBtn = document.createElement('button');
-                    delBtn.className = "p-2 opacity-30 hover:opacity-100 hover:text-red-500 transition";
-                    delBtn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4"></i>`;
-                    delBtn.onclick = (e) => { e.stopPropagation(); deleteEntry(cat, id); };
-
-                    itemWrapper.appendChild(item);
-                    itemWrapper.appendChild(delBtn);
-                    group.appendChild(itemWrapper);
+                        itemWrapper.appendChild(item);
+                        
+                        if (isAdmin) {
+                            const delBtn = document.createElement('button');
+                            delBtn.innerHTML = `<i data-lucide="trash-2" class="w-4 h-4 text-zinc-700 hover:text-red-500"></i>`;
+                            delBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                if(confirm("確定刪除？")) remove(ref(db, `resources/library/${cat}/${id}`));
+                            };
+                            itemWrapper.appendChild(delBtn);
+                        }
+                        group.appendChild(itemWrapper);
+                    });
+                    container.appendChild(group);
                 });
-                container.appendChild(group);
-            });
-            lucide.createIcons();
-        });
+                lucide.createIcons();
+            }, { onlyOnce: true });
+        }
 
-        // 強化圖片載入與緩存處理 [cite: 2026-01-22]
         async function loadManga(urls, cat, title) {
             document.getElementById('current-path').innerText = `LOADING: ${title}...`;
-            mangaPages = [];
-            currentIndex = 0;
-
-            const results = await Promise.all(urls.map((url, idx) => {
+            const results = await Promise.all(urls.map(url => {
                 return new Promise(res => {
                     const img = new Image();
                     img.crossOrigin = "anonymous";
                     img.onload = () => res(img);
-                    img.onerror = () => { console.error("載入失敗:", url); res(null); };
-                    img.src = url + "?v=" + Date.now(); // Cache Buster
+                    img.onerror = () => res(null);
+                    img.src = url + "?v=" + Date.now();
                 });
             }));
-
             mangaPages = results.filter(i => i !== null);
+            currentIndex = 0;
             if (mangaPages.length > 0) {
                 document.getElementById('current-path').innerText = `${cat} / ${title}`;
                 render();
                 updateDots();
-            } else {
-                alert("圖片載入失敗，請檢查路徑或權限。");
             }
         }
 
@@ -197,11 +218,9 @@
             const viewport = document.getElementById('manga-viewport');
             canvas.width = viewport.clientWidth;
             canvas.height = viewport.clientHeight;
-            
             const imgRatio = img.width / img.height;
             const canvasRatio = canvas.width / canvas.height;
             let drawW, drawH, offsetX, offsetY;
-            
             if (imgRatio > canvasRatio) {
                 drawW = canvas.width; drawH = canvas.width / imgRatio;
                 offsetX = 0; offsetY = (canvas.height - drawH) / 2;
@@ -213,30 +232,20 @@
             ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
         }
 
-        function updateDots() {
-            document.getElementById('dot-nav').innerText = `[ PAGE ${currentIndex + 1} / ${mangaPages.length} ]`;
-        }
-
+        function updateDots() { document.getElementById('dot-nav').innerText = `[ PAGE ${currentIndex + 1} / ${mangaPages.length} ]`; }
         window.nextPage = () => { if (currentIndex < mangaPages.length - 1) { currentIndex++; render(); updateDots(); } };
         window.prevPage = () => { if (currentIndex > 0) { currentIndex--; render(); updateDots(); } };
-        window.startApp = () => { 
-            document.getElementById('landing-page').style.transform = 'translateY(-110%)'; 
-            document.getElementById('main-app').style.visibility = 'visible'; 
-            document.getElementById('main-app').style.opacity = '1'; 
-        };
-        window.toggleDrawer = () => { 
-            document.getElementById('side-drawer').classList.toggle('open'); 
-            document.getElementById('drawer-overlay').classList.toggle('open'); 
-        };
-        window.triggerAdmin = () => document.getElementById('admin-modal').classList.toggle('hidden');
+        window.startApp = () => { document.getElementById('landing-page').style.transform = 'translateY(-110%)'; document.getElementById('main-app').style.visibility = 'visible'; document.getElementById('main-app').style.opacity = '1'; };
+        window.toggleDrawer = () => { document.getElementById('side-drawer').classList.toggle('open'); document.getElementById('drawer-overlay').classList.toggle('open'); };
+        window.triggerAdmin = () => { if(isAdmin) document.getElementById('admin-modal').classList.toggle('hidden'); };
         
         window.onload = () => {
             const savedBg = localStorage.getItem('user_hero_bg') || '';
             if (savedBg) ['part-l', 'part-m', 'part-r'].forEach(id => document.getElementById(id).style.backgroundImage = `url('${savedBg}')`);
             setTimeout(() => { document.getElementById('landing-page').classList.add('loaded'); document.getElementById('enter-btn-area').style.opacity = '1'; }, 100);
             lucide.createIcons();
+            refreshLibrary();
         };
-
         window.onresize = render;
     </script>
 </body>
