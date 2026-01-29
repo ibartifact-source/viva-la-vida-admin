@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>私人裁決 - 邏輯覺醒修正版</title>
+    <title>私人裁決 - 邏輯最終覺醒</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -96,7 +96,7 @@
         const canvas = document.getElementById('mangaCanvas');
         const ctx = canvas.getContext('2d');
 
-        // ✅ 修正：發布邏輯自動補斜線 [cite: 2026-01-24]
+        // ✅ 強制路徑一元化：解決同步器拼寫錯誤 [cite: 2026-01-22, 2026-01-24]
         document.getElementById('publish-btn').onclick = async () => {
             const cat = document.getElementById('admin-cat').value.trim();
             const title = document.getElementById('admin-title').value.trim();
@@ -104,8 +104,10 @@
             const count = parseInt(document.getElementById('admin-count').value);
             if(!cat || !title || !baseUrl || !count) return alert("資料不全");
             
-            if(!baseUrl.endsWith('/')) baseUrl += '/'; // ✅ 強制自動補斜線，防止 404 [cite: 2026-01-29]
+            // 自動補斜線與修正 GitHub 路徑格式
+            if(!baseUrl.endsWith('/')) baseUrl += '/';
             const imageUrls = Array.from({length: count}, (_, i) => `${baseUrl}${(i+1).toString().padStart(2, '0')}.jpg`);
+            
             await set(push(ref(db, `resources/library/${cat}`)), { title, images: imageUrls, createdAt: Date.now() });
             alert("同步成功！");
             triggerAdmin();
@@ -131,36 +133,55 @@
 
         async function loadManga(urls, cat, title) {
             document.getElementById('current-path').innerText = `${cat} / ${title}`;
-            mangaPages = []; // ✅ 載入前清空舊數據
+            mangaPages = []; // 徹底清空快取
+            
             const promises = urls.map(url => new Promise(res => { 
                 const img = new Image(); 
-                img.crossOrigin = "anonymous"; // ✅ 修正：跨域 [cite: 2026-01-29]
+                img.crossOrigin = "anonymous"; // ✅ 解決跨域問題 [cite: 2026-01-29]
                 img.onload = () => res(img); 
-                img.onerror = () => res(null);
+                img.onerror = () => { console.error("Failed:", url); res(null); };
                 img.src = url; 
             }));
+            
             const results = await Promise.all(promises);
             mangaPages = results.filter(i => i !== null);
-            currentIndex = 0; 
-            render(); 
-            updateDots();
+            
+            if (mangaPages.length > 0) {
+                currentIndex = 0; 
+                render(); 
+                updateDots();
+            } else {
+                alert("圖片載入失敗，請檢查 GitHub 路徑與檔案命名！");
+            }
         }
 
         function render() {
             if (!mangaPages.length) return;
             const img = mangaPages[currentIndex];
             const viewport = document.getElementById('manga-viewport');
-            const vW = viewport.clientWidth, vH = viewport.clientHeight;
-            const imgRatio = img.width / img.height, viewRatio = vW / vH;
-
-            // ✅ 修正：等比縮放邏輯 [cite: 2026-01-29]
-            if (imgRatio > viewRatio) {
-                canvas.width = vW; canvas.height = vW / imgRatio;
+            
+            canvas.width = viewport.clientWidth;
+            canvas.height = viewport.clientHeight;
+            
+            const imgRatio = img.width / img.height;
+            const canvasRatio = canvas.width / canvas.height;
+            
+            let drawW, drawH, offsetX, offsetY;
+            
+            if (imgRatio > canvasRatio) {
+                drawW = canvas.width;
+                drawH = canvas.width / imgRatio;
+                offsetX = 0;
+                offsetY = (canvas.height - drawH) / 2;
             } else {
-                canvas.height = vH; canvas.width = vH * imgRatio;
+                drawH = canvas.height;
+                drawW = canvas.height * imgRatio;
+                offsetY = 0;
+                offsetX = (canvas.width - drawW) / 2;
             }
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // ✅ 強制清空畫布 [cite: 2026-01-29]
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // ✅ 強制清空舊畫面 [cite: 2026-01-29]
+            ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
         }
 
         function updateDots() {
